@@ -10,6 +10,10 @@ class Point {
 		this.y = y;
 		this.value = value;
 	}
+
+	equals(point: Point){
+		return this.y === point.y && this.x === point.x;
+	}
 }
 
 const path = `./input.txt`;
@@ -62,33 +66,70 @@ function getBox(point: Point){
 
 function uniqueBox(point: Point){
 	const box = getBox(point);
-	const values = box.box.flat().map(a => a.value).filter(a => typeof a !== 'number')
+	const values = box.box.flat().filter(a => typeof a.value !== 'number')
 	checkSeen(point, values);
 }
 
 function uniqueColumn(point: Point){
 	const column = getColumn(point.x);
-	const values = column.map(a => a.value).filter(a => typeof a !== 'number')
+	const values = column.filter(a => typeof a.value !== 'number')
 	checkSeen(point, values);
 }
 
-function checkSeen(point: Point, values: (number | Set<number>)[]){
+function uniqueRow(point: Point){
+	const row = map[point.y];
+	const values = row.filter(a => typeof a.value !== 'number')
+	checkSeen(point, values);
+}
+
+function checkSeen(point: Point, points: Point[]){
 	if(typeof point.value === 'number'){
 		return;
 	}
 	const seen = new Map<number, number>();
 	for(const num of point.value){
-		for(const set of values){
-			if(set instanceof Set && set.has(num)){
+		for(const set of points){
+			if(set.value instanceof Set && set.value.has(num)){
 				seen.set(num, (seen.get(num) ?? 0) + 1)
 			}
 		}
 	}
 
+	const pairs: number[] = []
+
 	for(let [number, amount] of seen.entries()){
 		if(amount === 1){
 			changed = true;
 			point.value = number;
+		}else if(amount === 2){
+			pairs.push(number);
+		}
+	}
+}
+
+function pointingPairs(point: Point){
+	if(typeof point.value === 'number'){
+		return;
+	}
+	const column = getColumn(point.x);
+	const box = getBox(point).box.flat().filter(a =>  a.value instanceof Set);
+	for(const num of point.value){
+		const points: Point[] = [];
+		for(const val of box){
+			if(val.value instanceof Set && val.value.has(num)){
+				points.push(val)
+			}
+		}
+
+		
+		const x = new Set(points.map(a => a.x));
+		if(x.size === 1){
+			const outside = column.filter(p1 => !box.some(p2 => p1.equals(p2))).filter(a => typeof a.value !== 'number');
+			for(const set of outside){
+				if(set.value instanceof Set){
+					set.value.delete(num);
+				}
+			}
 		}
 	}
 }
@@ -122,11 +163,19 @@ while(changed){
 	changed = false;
 	loop(getNotes)
 	loop(uniqueBox)
-	loop(uniqueColumn)
-	loop(fill)
 	loop(getNotes)
+	loop(uniqueColumn)
+	loop(getNotes)
+	loop(uniqueRow)
+	loop(getNotes)
+	loop(pointingPairs)
+	loop(getNotes)
+	loop(fill)
 }
+
+
 printMap()
+// console.dir(map, {depth: null});
 
 function printMap(){
 	let result = "";
