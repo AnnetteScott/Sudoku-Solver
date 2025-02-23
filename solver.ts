@@ -67,7 +67,29 @@ function getBox(point: Point){
 function uniqueBox(point: Point){
 	const box = getBox(point);
 	const values = box.box.flat().filter(a => typeof a.value !== 'number')
-	checkSeen(point, values);
+	const seen = checkSeen(point, values);
+	const pairs: number[] = [];
+	for(const [num, total] of seen?.entries()){
+		if(total === 2){
+			pairs.push(num)
+		}
+	}
+	if(pairs.length === 2){
+		const points: Point[] = []
+		for(const pointObj of values){
+			if(pointObj.value instanceof Set && pointObj.value.has(pairs[0]) && pointObj.value.has(pairs[1])){
+				points.push(pointObj)
+			}
+		}
+		if(points.length === 2){
+			points.forEach(p => {
+				if(typeof p.value !== 'number' && p.value.size > 2){
+					changed = true;
+				}
+				p.value = new Set(pairs)
+			})
+		}
+	}
 }
 
 function uniqueColumn(point: Point){
@@ -83,10 +105,10 @@ function uniqueRow(point: Point){
 }
 
 function checkSeen(point: Point, points: Point[]){
-	if(typeof point.value === 'number'){
-		return;
-	}
 	const seen = new Map<number, number>();
+	if(typeof point.value === 'number'){
+		return seen;
+	}
 	for(const num of point.value){
 		for(const set of points){
 			if(set.value instanceof Set && set.value.has(num)){
@@ -95,16 +117,14 @@ function checkSeen(point: Point, points: Point[]){
 		}
 	}
 
-	const pairs: number[] = []
-
 	for(let [number, amount] of seen.entries()){
 		if(amount === 1){
 			changed = true;
 			point.value = number;
-		}else if(amount === 2){
-			pairs.push(number);
 		}
 	}
+
+	return seen;
 }
 
 function pointingPairs(point: Point){
@@ -112,6 +132,7 @@ function pointingPairs(point: Point){
 		return;
 	}
 	const column = getColumn(point.x);
+	const row = map[point.y];
 	const box = getBox(point).box.flat().filter(a =>  a.value instanceof Set);
 	for(const num of point.value){
 		const points: Point[] = [];
@@ -175,7 +196,7 @@ while(changed){
 
 
 printMap()
-// console.dir(map, {depth: null});
+console.dir(map, {depth: null});
 
 function printMap(){
 	let result = "";
@@ -199,6 +220,6 @@ function printMap(){
 		result += "\n";
 	});
 
-	console.log(result);
+	process.stdout.write(result);
 }
 
